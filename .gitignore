@@ -1,0 +1,7 @@
+nogil_rpc_implementation_plan.md
+.venv/
+__pycache__/
+*.py[cod]
+nogil_rpc/__pycache__
+nogil_rpc.egg-info
+pyproject.toml

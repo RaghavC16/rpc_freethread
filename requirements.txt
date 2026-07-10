@@ -1,0 +1,5 @@
+# Runtime dependencies
+# None currently; nogil_rpc uses only the Python standard library.
+
+# Install this project into the active environment in editable mode.
+-e .
