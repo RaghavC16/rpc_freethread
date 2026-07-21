@@ -33,10 +33,17 @@ class FunctionNotFoundError(RegistryError):
     """Raised when a requested function is not registered."""
 
 
+class RemoteClassNotFoundError(RegistryError):
+    """Raised when a requested remote class is not registered."""
+
+
+class ActorNotFoundError(RpcError):
+    """Raised when a requested actor instance does not exist."""
+
+
 class RemoteError(RpcError):
     """Raised by clients when a remote function fails."""
 
     def __init__(self, error_type: str, message: str) -> None:
         self.error_type = error_type
         super().__init__(f"{error_type}: {message}")
-

@@ -1,7 +1,11 @@
 nogil_rpc_implementation_plan.md
 .venv/
+.venv-ft/
+.python-3.14t/
 __pycache__/
 *.py[cod]
 nogil_rpc/__pycache__
 nogil_rpc.egg-info
 pyproject.toml
+*.txt
+!requirements.txt

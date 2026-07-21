@@ -10,6 +10,7 @@ from nogil_rpc.errors import (
     DuplicateFunctionError,
     FunctionNotFoundError,
     FunctionNotRemoteError,
+    RemoteClassNotFoundError,
 )
 
 F = TypeVar("F", bound=Callable[..., object])
@@ -54,3 +55,57 @@ class FunctionRegistry:
         """Return registered function names in deterministic order."""
         with self._lock:
             return tuple(sorted(self._functions))
+
+
+class RemoteRegistry:
+    """Process-wide registry of remote functions and actor classes."""
+
+    def __init__(self) -> None:
+        self._functions: dict[str, Callable[..., object]] = {}
+        self._classes: dict[str, type[object]] = {}
+        self._lock = Lock()
+
+    def register(self, target: F) -> F:
+        """Register a decorated function or actor class by name."""
+        if getattr(target, "__remote__", False) is not True:
+            raise FunctionNotRemoteError(
+                f"target {target.__name__!r} is not marked with @remote"
+            )
+
+        name = target.__name__
+        with self._lock:
+            if name in self._functions or name in self._classes:
+                raise DuplicateFunctionError(
+                    f"remote name {name!r} is already registered"
+                )
+            if isinstance(target, type):
+                self._classes[name] = target
+            else:
+                self._functions[name] = target
+        return target
+
+    def get_function(self, name: str) -> Callable[..., object]:
+        with self._lock:
+            try:
+                return self._functions[name]
+            except KeyError as exc:
+                raise FunctionNotFoundError(
+                    f"function name {name!r} is not registered"
+                ) from exc
+
+    def get_class(self, name: str) -> type[object]:
+        with self._lock:
+            try:
+                return self._classes[name]
+            except KeyError as exc:
+                raise RemoteClassNotFoundError(
+                    f"remote class name {name!r} is not registered"
+                ) from exc
+
+    def catalog(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
+        """Return stable function and actor-class name snapshots."""
+        with self._lock:
+            return tuple(sorted(self._functions)), tuple(sorted(self._classes))
+
+
+REMOTE_REGISTRY = RemoteRegistry()

@@ -8,7 +8,7 @@ from threading import Lock, Thread
 from typing import Any
 from uuid import uuid4
 
-from nogil_rpc.errors import ConnectionClosedError, ProtocolError
+from nogil_rpc.errors import ConnectionClosedError, ProtocolError, RemoteError
 from nogil_rpc.object_ref import ObjectRef
 from nogil_rpc.protocol import read_frame, write_frame
 from nogil_rpc.serializer import PickleSerializer, Serializer
@@ -23,8 +23,20 @@ def connect(
     """Connect to an RPC runtime and return a dynamic process proxy."""
     host, port = _parse_address(address)
     sock = socket.create_connection((host, port), timeout=timeout)
-    connection = RpcClientConnection(sock, serializer=serializer)
-    return RemoteProcess(connection)
+    serializer_impl = serializer if serializer is not None else PickleSerializer()
+    try:
+        catalog = serializer_impl.loads(read_frame(sock))
+        actor_names = _parse_catalog(catalog)
+        sock.settimeout(None)
+        connection = RpcClientConnection(
+            sock,
+            serializer=serializer_impl,
+            default_timeout=timeout,
+        )
+    except Exception:
+        sock.close()
+        raise
+    return RemoteProcess(connection, actor_names=actor_names)
 
 
 class RpcClientConnection:
@@ -36,6 +48,7 @@ class RpcClientConnection:
         *,
         serializer: Serializer | None = None,
         start_response_reader: bool = True,
+        default_timeout: float | None = None,
     ) -> None:
         self._sock = sock
         self._serializer = (
@@ -46,6 +59,7 @@ class RpcClientConnection:
         self._write_lock = Lock()
         self._closed = False
         self._lifecycle_lock = Lock()
+        self._default_timeout = default_timeout
 
         self._reader_thread: Thread | None = None
         if start_response_reader:
@@ -63,16 +77,63 @@ class RpcClientConnection:
         kwargs: Mapping[str, Any],
     ) -> ObjectRef:
         """Send a remote function call and return its result reference."""
+        return self._send_request(
+            {
+                "type": "call",
+                "function": function_name,
+                "args": list(args),
+                "kwargs": dict(kwargs),
+            }
+        )
+
+    def create_actor(
+        self,
+        class_name: str,
+        args: tuple[Any, ...],
+        kwargs: Mapping[str, Any],
+    ) -> ActorHandle:
+        """Construct a persistent remote actor and return its handle."""
+        actor_id = str(uuid4())
+        ref = self._send_request(
+            {
+                "type": "create_actor",
+                "actor_id": actor_id,
+                "class": class_name,
+                "args": list(args),
+                "kwargs": dict(kwargs),
+            }
+        )
+        ref.get(timeout=self._default_timeout)
+        return ActorHandle(self, actor_id)
+
+    def call_actor(
+        self,
+        actor_id: str,
+        method_name: str,
+        args: tuple[Any, ...],
+        kwargs: Mapping[str, Any],
+    ) -> ObjectRef:
+        """Invoke one method on a persistent remote actor."""
+        return self._send_request(
+            {
+                "type": "call_actor",
+                "actor_id": actor_id,
+                "method": method_name,
+                "args": list(args),
+                "kwargs": dict(kwargs),
+            }
+        )
+
+    def destroy_actor(self, actor_id: str) -> None:
+        """Destroy a persistent remote actor after queued methods finish."""
+        ref = self._send_request({"type": "destroy_actor", "actor_id": actor_id})
+        ref.get(timeout=self._default_timeout)
+
+    def _send_request(self, request: dict[str, Any]) -> ObjectRef:
         call_id = str(uuid4())
         ref = ObjectRef(call_id)
-        request = {
-            "type": "call",
-            "call_id": call_id,
-            "function": function_name,
-            "args": list(args),
-            "kwargs": dict(kwargs),
-        }
-        payload = self._serializer.dumps(request)
+        message = {**request, "call_id": call_id}
+        payload = self._serializer.dumps(message)
 
         try:
             with self._lifecycle_lock:
@@ -136,6 +197,10 @@ class RpcClientConnection:
                 return
             self._closed = True
             try:
+                self._sock.shutdown(socket.SHUT_RDWR)
+            except (AttributeError, OSError):
+                pass
+            try:
                 self._sock.close()
             except OSError:
                 pass
@@ -151,13 +216,21 @@ class RpcClientConnection:
 class RemoteProcess:
     """Dynamic proxy for functions exposed by one RPC runtime."""
 
-    def __init__(self, connection: RpcClientConnection) -> None:
+    def __init__(
+        self,
+        connection: RpcClientConnection,
+        *,
+        actor_names: frozenset[str] = frozenset(),
+    ) -> None:
         self._connection = connection
+        self._actor_names = actor_names
 
-    def __getattr__(self, function_name: str) -> RemoteFunctionProxy:
-        if function_name.startswith("_"):
-            raise AttributeError(function_name)
-        return RemoteFunctionProxy(self._connection, function_name)
+    def __getattr__(self, remote_name: str) -> Any:
+        if remote_name.startswith("_"):
+            raise AttributeError(remote_name)
+        if remote_name in self._actor_names:
+            return RemoteActorClassProxy(self._connection, remote_name)
+        return RemoteFunctionProxy(self._connection, remote_name)
 
     def close(self) -> None:
         self._connection.close()
@@ -172,6 +245,94 @@ class RemoteFunctionProxy:
 
     def remote(self, *args: Any, **kwargs: Any) -> ObjectRef:
         return self._connection.call(self._function_name, args, kwargs)
+
+
+class RemoteActorClassProxy:
+    """Client proxy used to construct one kind of remote actor."""
+
+    def __init__(self, connection: RpcClientConnection, class_name: str) -> None:
+        self._connection = connection
+        self._class_name = class_name
+
+    def remote(self, *args: Any, **kwargs: Any) -> ActorHandle:
+        return self._connection.create_actor(self._class_name, args, kwargs)
+
+
+class ActorHandle:
+    """Reference to one persistent object owned by an RPC runtime."""
+
+    def __init__(self, connection: RpcClientConnection, actor_id: str) -> None:
+        self._connection = connection
+        self._actor_id = actor_id
+        self._closed = False
+        self._lifecycle_lock = Lock()
+
+    @property
+    def actor_id(self) -> str:
+        return self._actor_id
+
+    def __getattr__(self, method_name: str) -> ActorMethodProxy:
+        if method_name.startswith("_"):
+            raise AttributeError(method_name)
+        return ActorMethodProxy(self, method_name)
+
+    def close(self) -> None:
+        with self._lifecycle_lock:
+            if self._closed:
+                return
+            self._closed = True
+        try:
+            self._connection.destroy_actor(self._actor_id)
+        except ConnectionClosedError:
+            pass
+        except RemoteError as exc:
+            if exc.error_type != "ActorNotFoundError":
+                raise
+
+    def _call(
+        self,
+        method_name: str,
+        args: tuple[Any, ...],
+        kwargs: Mapping[str, Any],
+    ) -> ObjectRef:
+        with self._lifecycle_lock:
+            if self._closed:
+                raise ConnectionClosedError("actor handle is closed")
+            return self._connection.call_actor(
+                self._actor_id,
+                method_name,
+                args,
+                kwargs,
+            )
+
+
+class ActorMethodProxy:
+    """Dynamic proxy for one method on a remote actor."""
+
+    def __init__(self, actor: ActorHandle, method_name: str) -> None:
+        self._actor = actor
+        self._method_name = method_name
+
+    def remote(self, *args: Any, **kwargs: Any) -> ObjectRef:
+        return self._actor._call(self._method_name, args, kwargs)
+
+
+def _parse_catalog(message: Any) -> frozenset[str]:
+    if not isinstance(message, dict) or message.get("type") != "catalog":
+        raise ProtocolError("server did not send a valid remote catalog")
+    function_names = message.get("functions")
+    actor_names = message.get("actors")
+    if not isinstance(function_names, (list, tuple)) or not all(
+        isinstance(name, str) for name in function_names
+    ):
+        raise ProtocolError("catalog functions must be a sequence of strings")
+    if not isinstance(actor_names, (list, tuple)) or not all(
+        isinstance(name, str) for name in actor_names
+    ):
+        raise ProtocolError("catalog actors must be a sequence of strings")
+    if set(function_names).intersection(actor_names):
+        raise ProtocolError("catalog names cannot be both functions and actors")
+    return frozenset(actor_names)
 
 
 def _parse_address(address: str) -> tuple[str, int]:

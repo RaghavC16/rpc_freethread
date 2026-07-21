@@ -1,12 +1,12 @@
 # nogil_rpc
 
 `nogil_rpc` is a small Python-to-Python RPC runtime for free-threaded Python
-experiments. It lets one process register marked functions and another process
-call them with a Ray-like `.remote(...).get()` API.
+experiments. It lets a server expose functions with `@remote` and another
+process call them through a Ray-like `.remote(...).get()` API.
 
 ## Quick Start
 
-Start a runtime and register functions explicitly:
+Decorate functions and start a runtime:
 
 ```python
 from nogil_rpc import RpcRuntime, remote
@@ -18,7 +18,6 @@ def add(a, b):
 
 
 runtime = RpcRuntime(host="127.0.0.1", port=50051)
-runtime.register(add)
 runtime.start()
 runtime.wait()
 ```
@@ -85,17 +84,72 @@ wait for the result, or `ready()` to check completion without blocking.
 
 Remote exceptions are raised locally as `RemoteError`.
 
+## Remote Actors
+
+Decorating a class exposes it as a persistent remote actor:
+
+```python
+from nogil_rpc import RpcRuntime, remote
+
+
+@remote
+class Counter:
+    def __init__(self, value=0):
+        self.value = value
+
+    def increment(self, amount=1):
+        self.value += amount
+        return self.value
+
+
+runtime = RpcRuntime(host="127.0.0.1", port=50051)
+runtime.start()
+runtime.wait()
+```
+
+Construct the actor and call its member functions from the client:
+
+```python
+from nogil_rpc import connect
+
+
+worker = connect("127.0.0.1:50051")
+counter = worker.Counter.remote(10)
+try:
+    print(counter.increment.remote().get())
+    print(counter.increment.remote(amount=4).get())
+finally:
+    counter.close()
+    worker.close()
+```
+
+Each actor keeps its instance state on the server. Calls to one actor execute in
+submission order, while separate actors can execute concurrently. Actor
+construction and `close()` are synchronous; actor methods return `ObjectRef`
+instances. Remote actors currently support synchronous methods whose arguments
+and results can be serialized by the configured serializer.
+
+Constructor, function, and method exceptions are returned to the client as
+`RemoteError`, with the original exception class name available through
+`error_type`. Missing methods, non-callable attributes, unsupported async or
+generator callables, and serialization failures follow the same error path.
+Private actor attributes are not exposed. Closing a client connection releases
+the actors it created, and both actor and runtime shutdown are idempotent.
+
 ## Free-Threading Safety
 
 The runtime is written as if the GIL does not protect shared state:
 
 - the function registry is locked
+- the actor instance registry is locked
 - client pending-call maps are locked
 - runtime connection sets are locked
 - socket writes are serialized per connection
 - remote functions may run concurrently in the worker pool
+- methods on one actor are serialized through its own executor
 
-Application state mutated by remote functions should use its own locks.
+`@remote` adds functions to a process-wide registry shared by runtimes in that
+process. Application state mutated by remote functions should use its own locks.
 
 ## Development
 
@@ -111,3 +165,77 @@ Run tests:
 ```bash
 .venv/bin/python -m unittest discover -s tests
 ```
+
+## Free-Threaded Python
+
+This repo can also be tested with the project-local free-threaded Python build:
+
+```bash
+.venv-ft/bin/python -c "import sysconfig; print(sysconfig.get_config_var('Py_GIL_DISABLED'))"
+.venv-ft/bin/python -m unittest discover -s tests
+```
+
+The expected `Py_GIL_DISABLED` output is:
+
+```text
+1
+```
+
+This local `.venv-ft` was created from a source-built `python3.14t` using native
+`venv --without-pip`. The build environment did not provide zlib/OpenSSL
+headers, so pip is not available in `.venv-ft`; the repo is made importable in
+that venv through a local `.pth` file instead. The RPC package itself uses only
+standard-library modules available in that build.
+
+## Free-Threading Benchmark
+
+The benchmark in `benchmarks/rpc_thread_eval.py` runs the same pure-Python
+CPU-bound workload as either a remote function or a remote actor member
+function. This is the right kind of workload for checking free-threading:
+I/O-heavy code can overlap even with the GIL, but CPU-bound Python bytecode
+should only scale across threads when the GIL is disabled.
+
+Run the benchmark once with the normal venv:
+
+```bash
+.venv/bin/python benchmarks/rpc_thread_eval.py run --workers 8 --tasks 32 --iterations 1000000
+```
+
+Run the same benchmark with the free-threaded venv:
+
+```bash
+.venv-ft/bin/python benchmarks/rpc_thread_eval.py run --workers 8 --tasks 32 --iterations 1000000
+```
+
+To benchmark the same workload through a remote actor member function, select
+the actor target. The benchmark creates one actor per worker by default and
+distributes calls across them; a single actor intentionally executes its calls
+serially.
+
+```bash
+.venv-ft/bin/python benchmarks/rpc_thread_eval.py run --target actor --workers 8 --tasks 32 --iterations 1000000
+```
+
+Use `--actors N` to choose a different actor count. Actor construction and
+destruction are excluded from the timed section so the result measures member
+function call throughput.
+
+For the cleanest comparison, use the same free-threaded interpreter with its
+GIL enabled and disabled. The command runs each configuration several times,
+reports the median, and sweeps across 1, 2, 4, and 6 runtime workers:
+
+```bash
+.venv-ft/bin/python benchmarks/rpc_thread_eval.py compare --workers 1 2 4 6 --tasks 24 --iterations 1000000 --repetitions 3
+```
+
+Add `--target actor` to run the same GIL-enabled versus GIL-disabled comparison
+through actor member functions.
+
+The key metric is `CPU parallelism ratio`, calculated as process CPU time divided
+by wall time. A CPU-bound GIL build should usually be near `1.0x`, while a
+free-threaded build can rise above `1.0x` when multiple Python threads are truly
+running at the same time. Throughput is reported as tasks/sec and iterations/sec.
+Exact numbers depend on CPU count, system load, and workload size, so compare
+the two modes on the same machine with the same arguments. The report separately
+shows whether the interpreter supports free-threading and whether the GIL was
+enabled for that particular run.
