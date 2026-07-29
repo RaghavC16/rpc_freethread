@@ -1,7 +1,10 @@
 nogil_rpc_implementation_plan.md
+ray_control_plane_analysis.md
+.deps/
 .venv/
 .venv-ft/
 .python-3.14t/
+.python-3.14/
 __pycache__/
 *.py[cod]
 nogil_rpc/__pycache__
@@ -9,3 +12,4 @@ nogil_rpc.egg-info
 pyproject.toml
 *.txt
 !requirements.txt
+tests/test_control_plane_benchmark.py
