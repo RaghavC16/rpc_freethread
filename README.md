@@ -5,6 +5,22 @@ free-threaded Python experiments. It lets a server expose functions and
 stateful actors with `@remote` and another process call them through a Ray-like
 `.remote(...).get()` API.
 
+The package owns only RPC coordination. Scheduling policies, domain payloads,
+GPU execution, retries, and alpha-beta-CROWN integration remain application
+responsibilities.
+
+## Installation
+
+Install the supporting package directly into the alpha-beta-CROWN environment:
+
+```bash
+python -m pip install -e /path/to/rpc_freethread
+```
+
+`nogil-rpc` supports Python 3.11 and newer and has no runtime dependencies.
+It includes PEP 561 typing metadata. The installed package version is available
+as `nogil_rpc.__version__`.
+
 ## Quick Start
 
 Decorate functions and start a runtime:
@@ -18,9 +34,8 @@ def add(a, b):
     return a + b
 
 
-runtime = RpcRuntime(host="127.0.0.1", port=50051)
-runtime.start()
-runtime.wait()
+with RpcRuntime(host="127.0.0.1", port=50051) as runtime:
+    runtime.wait()
 ```
 
 Call the runtime from another process:
@@ -29,12 +44,9 @@ Call the runtime from another process:
 from nogil_rpc import connect
 
 
-worker = connect("127.0.0.1:50051")
-try:
+with connect("127.0.0.1:50051") as worker:
     ref = worker.add.remote(2, 3)
     print(ref.get())
-finally:
-    worker.close()
 ```
 
 Expected output:
@@ -84,6 +96,11 @@ Stop the server with `Ctrl-C` when finished.
 wait for the result, or `ready()` to check completion without blocking.
 
 Remote exceptions are raised locally as `RemoteError`.
+
+The supported public imports are `remote`, `connect`, `RpcRuntime`,
+`RemoteProcess`, `ObjectRef`, `ActorHandle`, `Serializer`, `PickleSerializer`,
+the exception types exported by `nogil_rpc`, and `__version__`. Other modules
+and underscored names are implementation details.
 
 ## Remote Actors
 
@@ -166,6 +183,17 @@ Run tests:
 ```bash
 .venv/bin/python -m unittest discover -s tests
 ```
+
+The wire format and compatibility expectations are documented in
+`docs/protocol.md`.
+
+## Security and reliability boundaries
+
+The default serializer uses `pickle`, so this runtime is only for trusted
+alpha-beta-CROWN machines on a protected network. It currently provides no
+authentication, encryption, retries, deduplication, heartbeats, reconnection,
+or durable actor state. A caller that loses its connection may not know whether
+an in-flight operation executed.
 
 ## Free-Threaded Python
 
@@ -299,11 +327,20 @@ compact control-plane workload. This is not an end-to-end alpha-beta-CROWN
 speedup claim; the benchmark excludes solver computation and tensor transport.
 
 The comparison models the serialized shared domain-list actor and its
-claim/publish/query traffic. It does not reproduce Ray placement groups,
-multi-node scheduling, GPU isolation, object-store tensor transport, process
-failure isolation, or forceful actor termination. The detailed production-code
-investigation and fairness boundaries are in
+claim/publish/query traffic. Its coordinators are local client threads, not
+remote solver ranks. It does not reproduce the intended cross-machine scalable
+branch-and-bound topology, multiple load-balanced domain-list services, the
+free-threaded preprocess/solve/postprocess pipeline inside each rank, Parallel
+CROWN tensor parallelism, bulky domain transport, process failure isolation, or
+forceful actor termination. The detailed production-code investigation and
+fairness boundaries are in
 `ray_control_plane_analysis.md`.
+
+The intended alpha-beta-CROWN integration uses `nogil_rpc` only for the control
+request. A remote `request_a_domain` call returns a compact descriptor or token;
+a separate data-plane implementation consumes that descriptor and transfers the
+domain payload. Tensor transport and Parallel CROWN collectives are outside the
+runtime's scope.
 
 The proposed packaging boundary and integration milestones for using the
 generic runtime from alpha-beta-CROWN are documented in

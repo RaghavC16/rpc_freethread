@@ -6,7 +6,14 @@ from threading import Barrier, Event, Thread
 from time import monotonic, sleep
 import unittest
 
-from nogil_rpc import ActorHandle, ObjectRef, RpcRuntime, connect, remote
+from nogil_rpc import (
+    ActorHandle,
+    ObjectRef,
+    RpcRuntime,
+    __version__,
+    connect,
+    remote,
+)
 from nogil_rpc.errors import (
     ConnectionClosedError,
     DuplicateFunctionError,
@@ -131,7 +138,11 @@ class CoreTests(unittest.TestCase):
     def test_catalog_validation(self) -> None:
         self.assertEqual(
             _parse_catalog(
-                {"type": "catalog", "functions": ("add",), "actors": ("Counter",)}
+                {
+                    "type": "catalog",
+                    "functions": ("add",),
+                    "actors": ("Counter",),
+                }
             ),
             frozenset({"Counter"}),
         )
@@ -139,14 +150,29 @@ class CoreTests(unittest.TestCase):
         invalid_catalogs = (
             None,
             {"type": "result", "functions": (), "actors": ()},
-            {"type": "catalog", "functions": "add", "actors": ()},
-            {"type": "catalog", "functions": (), "actors": (1,)},
-            {"type": "catalog", "functions": ("Same",), "actors": ("Same",)},
+            {
+                "type": "catalog",
+                "functions": "add",
+                "actors": (),
+            },
+            {
+                "type": "catalog",
+                "functions": (),
+                "actors": (1,),
+            },
+            {
+                "type": "catalog",
+                "functions": ("Same",),
+                "actors": ("Same",),
+            },
         )
         for catalog in invalid_catalogs:
             with self.subTest(catalog=catalog):
                 with self.assertRaises(ProtocolError):
                     _parse_catalog(catalog)
+
+    def test_public_version_metadata(self) -> None:
+        self.assertEqual(__version__, "0.1.0")
 
     def test_runtime_stop_is_idempotent_and_prevents_restart(self) -> None:
         runtime = RpcRuntime()
@@ -283,6 +309,33 @@ class IntegrationTests(unittest.TestCase):
         worker = self.connect_worker(runtime)
 
         self.assertEqual(worker.integration_add.remote(2, 3).get(timeout=2), 5)
+
+    def test_runtime_and_connection_context_managers(self) -> None:
+        @remote
+        def context_add(a, b):
+            return a + b
+
+        with RpcRuntime(host="127.0.0.1", port=0) as runtime:
+            host, port = runtime.address
+            with connect(f"{host}:{port}", timeout=2) as worker:
+                self.assertEqual(worker.context_add.remote(4, 5).get(timeout=2), 9)
+
+            with self.assertRaises(ConnectionClosedError):
+                worker.context_add.remote(1, 2)
+
+    def test_actor_context_manager_closes_actor(self) -> None:
+        @remote
+        class ContextActor:
+            def value(self):
+                return 7
+
+        runtime = self.start_runtime()
+        worker = self.connect_worker(runtime)
+        with worker.ContextActor.remote() as actor:
+            self.assertEqual(actor.value.remote().get(timeout=2), 7)
+
+        with self.assertRaises(ConnectionClosedError):
+            actor.value.remote()
 
     def test_args_and_kwargs(self) -> None:
         @remote

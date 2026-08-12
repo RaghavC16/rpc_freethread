@@ -150,6 +150,13 @@ class RpcRuntime:
         for actor in actors:
             actor.executor.shutdown(wait=True, cancel_futures=True)
 
+    def __enter__(self) -> RpcRuntime:
+        self.start()
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        self.stop()
+
     def _accept_loop(self, server_sock: socket.socket) -> None:
         while not self._stop_event.is_set():
             try:

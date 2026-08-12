@@ -16,3 +16,4 @@ dist/
 alpha_beta_crown_integration.md
 nogil_rpc_implementation_plan.md
 ray_control_plane_analysis.md
+dist-ab-crown-flow.png

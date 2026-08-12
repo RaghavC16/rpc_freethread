@@ -4,11 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nogil-rpc"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A small Python-to-Python RPC runtime for free-threaded Python experiments."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+plot = ["matplotlib>=3.8"]
+
 [tool.setuptools]
 packages = ["nogil_rpc"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+nogil_rpc = ["py.typed"]
+
+[tool.setuptools.dynamic]
+version = {attr = "nogil_rpc._version.__version__"}

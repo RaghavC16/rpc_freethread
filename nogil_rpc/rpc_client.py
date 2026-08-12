@@ -233,7 +233,14 @@ class RemoteProcess:
         return RemoteFunctionProxy(self._connection, remote_name)
 
     def close(self) -> None:
+        """Close the underlying connection and fail any pending calls."""
         self._connection.close()
+
+    def __enter__(self) -> RemoteProcess:
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        self.close()
 
 
 class RemoteFunctionProxy:
@@ -288,6 +295,12 @@ class ActorHandle:
         except RemoteError as exc:
             if exc.error_type != "ActorNotFoundError":
                 raise
+
+    def __enter__(self) -> ActorHandle:
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        self.close()
 
     def _call(
         self,
