@@ -80,11 +80,16 @@ rpc_freethread/
 ├── benchmarks/
 │   ├── rpc_thread_eval.py
 │   │                      GIL-on/GIL-off function and actor benchmark
-│   └── control_plane_compare.py
-│                          Ray versus nogil_rpc shared-actor benchmark
+│   ├── control_plane_compare.py
+│   │                      Ray versus nogil_rpc shared-actor benchmark
+│   ├── plot_control_plane_results.py
+│   │                      JSON-to-SVG/PNG benchmark renderer
+│   └── results/           Checked-in 10-run comparison data and plots
 ├── README.md             User-facing setup and usage
 ├── ray_control_plane_analysis.md
-│                          Verifier Ray orchestration investigation
+│                          alpha-beta-CROWN Ray orchestration investigation
+├── alpha_beta_crown_integration.md
+│                          Generic API gaps and verifier integration plan
 ├── nogil_rpc_implementation_plan.md
 │                          Original plan and retry roadmap
 ├── pyproject.toml        Package metadata
@@ -995,7 +1000,8 @@ not a cross-host latency benchmark.
 ### 14.4 Ray control-plane comparison
 
 `benchmarks/control_plane_compare.py` models the shared domain-list actor used by
-the distributed verifier without importing its Torch, CUDA, or solver stack.
+the alpha-beta-CROWN neural network verifier without importing its Torch, CUDA,
+or solver stack.
 The backend-neutral `FrontierCore` owns a heap of compact
 `(priority, depth, token)` records and exposes four actor operations:
 
@@ -1010,12 +1016,14 @@ coordinator threads issue synchronous claim/publish/query cycles concurrently,
 matching the central serialized actor boundary while keeping data-plane work out
 of the measurement.
 
-The `compare` command launches clean subprocesses because Ray is installed in
-the verifier environment while `nogil_rpc` is evaluated with the project-local
-free-threaded interpreter. Its default matrix uses 1, 2, 4, and 6 coordinators.
-It reports framework/Python identity, GIL state, startup time, actor creation
-time, steady-state control calls per second, amortized time per call, raw runs,
-medians, and a reconciled final snapshot.
+The `compare` command launches clean subprocesses in three modes: Ray and
+`nogil_rpc` under the exact same regular CPython 3.14.6 interpreter, followed by
+`nogil_rpc` under CPython 3.14.6t with `-X gil=0`. The regular pair isolates
+framework overhead, the two `nogil_rpc` modes isolate free-threading, and the
+Ray/GIL versus RPC/no-GIL pair shows their combined effect. Its default matrix
+uses 1, 2, 4, and 6 coordinators. It reports framework/Python identity, GIL
+state, startup time, actor creation time, steady-state control calls per second,
+amortized time per call, raw runs, medians, and a reconciled final snapshot.
 
 This is intentionally a first-phase control-plane comparison. It does not model
 Ray placement groups, transferable actor handles, nested worker-to-pool actor
@@ -1230,10 +1238,11 @@ For an end-to-end code walkthrough:
 9. Runtime actor creation, method execution, and cleanup paths.
 10. `tests/test_nogil_rpc.py` to see each runtime guarantee exercised.
 11. `benchmarks/rpc_thread_eval.py` for the free-threading experiment.
-12. `ray_control_plane_analysis.md` for the verifier's Ray architecture.
+12. `ray_control_plane_analysis.md` for alpha-beta-CROWN's Ray architecture.
 13. `benchmarks/control_plane_compare.py` and its correctness tests for the
     cross-framework control-plane experiment.
-14. `nogil_rpc_implementation_plan.md` for the retry roadmap.
+14. `alpha_beta_crown_integration.md` for the generic API and adapter boundary.
+15. `nogil_rpc_implementation_plan.md` for the retry roadmap.
 
 ## 19. Summary
 

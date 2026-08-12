@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="940" viewBox="0 0 1400 940">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="110.0" y="52.0" font-family="Inter, Arial, sans-serif" font-size="30" text-anchor="start" fill="#263238" font-weight="700">Control-plane actor benchmark: Ray vs nogil_rpc</text>
+<text x="110.0" y="82.0" font-family="Inter, Arial, sans-serif" font-size="17" text-anchor="start" fill="#5f6b72" font-weight="400">Python 3.14.6 · median of 10 runs · whiskers show min–max</text>
+<text x="110.0" y="128.0" font-family="Inter, Arial, sans-serif" font-size="21" text-anchor="start" fill="#263238" font-weight="650">Steady-state throughput</text>
+<line x1="110.0" y1="485.0" x2="1345.0" y2="485.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="490.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">0</text>
+<line x1="110.0" y1="452.0" x2="1345.0" y2="452.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="457.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">1,000</text>
+<line x1="110.0" y1="419.0" x2="1345.0" y2="419.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="424.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">2,000</text>
+<line x1="110.0" y1="386.0" x2="1345.0" y2="386.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="391.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">3,000</text>
+<line x1="110.0" y1="353.0" x2="1345.0" y2="353.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="358.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">4,000</text>
+<line x1="110.0" y1="320.0" x2="1345.0" y2="320.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="325.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">5,000</text>
+<line x1="110.0" y1="287.0" x2="1345.0" y2="287.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="292.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">6,000</text>
+<line x1="110.0" y1="254.0" x2="1345.0" y2="254.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="259.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">7,000</text>
+<line x1="110.0" y1="221.0" x2="1345.0" y2="221.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="226.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">8,000</text>
+<line x1="110.0" y1="188.0" x2="1345.0" y2="188.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="193.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">9,000</text>
+<line x1="110.0" y1="155.0" x2="1345.0" y2="155.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="160.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">10,000</text>
+<text transform="rotate(-90 28 320.0)" x="28.0" y="320.0" font-family="Inter, Arial, sans-serif" font-size="15" text-anchor="middle" fill="#263238" font-weight="400">control calls / second</text>
+<line x1="110.0" y1="467.3" x2="110.0" y2="474.2" stroke="#d95f59" stroke-width="2"/>
+<line x1="103.0" y1="467.3" x2="117.0" y2="467.3" stroke="#d95f59" stroke-width="2"/>
+<line x1="103.0" y1="474.2" x2="117.0" y2="474.2" stroke="#d95f59" stroke-width="2"/>
+<line x1="521.7" y1="458.0" x2="521.7" y2="465.8" stroke="#d95f59" stroke-width="2"/>
+<line x1="514.7" y1="458.0" x2="528.7" y2="458.0" stroke="#d95f59" stroke-width="2"/>
+<line x1="514.7" y1="465.8" x2="528.7" y2="465.8" stroke="#d95f59" stroke-width="2"/>
+<line x1="933.3" y1="406.2" x2="933.3" y2="445.5" stroke="#d95f59" stroke-width="2"/>
+<line x1="926.3" y1="406.2" x2="940.3" y2="406.2" stroke="#d95f59" stroke-width="2"/>
+<line x1="926.3" y1="445.5" x2="940.3" y2="445.5" stroke="#d95f59" stroke-width="2"/>
+<line x1="1345.0" y1="408.0" x2="1345.0" y2="436.5" stroke="#d95f59" stroke-width="2"/>
+<line x1="1338.0" y1="408.0" x2="1352.0" y2="408.0" stroke="#d95f59" stroke-width="2"/>
+<line x1="1338.0" y1="436.5" x2="1352.0" y2="436.5" stroke="#d95f59" stroke-width="2"/>
+<polyline fill="none" stroke="#d95f59" stroke-width="4" stroke-linejoin="round" points="110.0,470.1 521.7,462.5 933.3,437.0 1345.0,423.0"/>
+<circle cx="110.0" cy="470.1" r="7" fill="#d95f59" stroke="#ffffff" stroke-width="2"/>
+<text x="110.0" y="457.1" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#d95f59" font-weight="650">451</text>
+<circle cx="521.7" cy="462.5" r="7" fill="#d95f59" stroke="#ffffff" stroke-width="2"/>
+<text x="521.7" y="449.5" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#d95f59" font-weight="650">682</text>
+<circle cx="933.3" cy="437.0" r="7" fill="#d95f59" stroke="#ffffff" stroke-width="2"/>
+<text x="933.3" y="424.0" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#d95f59" font-weight="650">1,455</text>
+<circle cx="1345.0" cy="423.0" r="7" fill="#d95f59" stroke="#ffffff" stroke-width="2"/>
+<text x="1345.0" y="410.0" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#d95f59" font-weight="650">1,879</text>
+<line x1="110.0" y1="359.7" x2="110.0" y2="426.9" stroke="#3973ac" stroke-width="2"/>
+<line x1="103.0" y1="359.7" x2="117.0" y2="359.7" stroke="#3973ac" stroke-width="2"/>
+<line x1="103.0" y1="426.9" x2="117.0" y2="426.9" stroke="#3973ac" stroke-width="2"/>
+<line x1="521.7" y1="405.0" x2="521.7" y2="436.7" stroke="#3973ac" stroke-width="2"/>
+<line x1="514.7" y1="405.0" x2="528.7" y2="405.0" stroke="#3973ac" stroke-width="2"/>
+<line x1="514.7" y1="436.7" x2="528.7" y2="436.7" stroke="#3973ac" stroke-width="2"/>
+<line x1="933.3" y1="413.2" x2="933.3" y2="436.7" stroke="#3973ac" stroke-width="2"/>
+<line x1="926.3" y1="413.2" x2="940.3" y2="413.2" stroke="#3973ac" stroke-width="2"/>
+<line x1="926.3" y1="436.7" x2="940.3" y2="436.7" stroke="#3973ac" stroke-width="2"/>
+<line x1="1345.0" y1="420.9" x2="1345.0" y2="425.5" stroke="#3973ac" stroke-width="2"/>
+<line x1="1338.0" y1="420.9" x2="1352.0" y2="420.9" stroke="#3973ac" stroke-width="2"/>
+<line x1="1338.0" y1="425.5" x2="1352.0" y2="425.5" stroke="#3973ac" stroke-width="2"/>
+<polyline fill="none" stroke="#3973ac" stroke-width="4" stroke-linejoin="round" points="110.0,402.4 521.7,419.8 933.3,422.9 1345.0,423.7"/>
+<circle cx="110.0" cy="402.4" r="7" fill="#3973ac" stroke="#ffffff" stroke-width="2"/>
+<text x="110.0" y="389.4" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#3973ac" font-weight="650">2,503</text>
+<circle cx="521.7" cy="419.8" r="7" fill="#3973ac" stroke="#ffffff" stroke-width="2"/>
+<text x="521.7" y="406.8" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#3973ac" font-weight="650">1,975</text>
+<circle cx="933.3" cy="422.9" r="7" fill="#3973ac" stroke="#ffffff" stroke-width="2"/>
+<text x="933.3" y="409.9" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#3973ac" font-weight="650">1,882</text>
+<circle cx="1345.0" cy="423.7" r="7" fill="#3973ac" stroke="#ffffff" stroke-width="2"/>
+<text x="1345.0" y="410.7" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#3973ac" font-weight="650">1,856</text>
+<line x1="110.0" y1="378.7" x2="110.0" y2="428.2" stroke="#2d936c" stroke-width="2"/>
+<line x1="103.0" y1="378.7" x2="117.0" y2="378.7" stroke="#2d936c" stroke-width="2"/>
+<line x1="103.0" y1="428.2" x2="117.0" y2="428.2" stroke="#2d936c" stroke-width="2"/>
+<line x1="521.7" y1="362.6" x2="521.7" y2="426.6" stroke="#2d936c" stroke-width="2"/>
+<line x1="514.7" y1="362.6" x2="528.7" y2="362.6" stroke="#2d936c" stroke-width="2"/>
+<line x1="514.7" y1="426.6" x2="528.7" y2="426.6" stroke="#2d936c" stroke-width="2"/>
+<line x1="933.3" y1="243.3" x2="933.3" y2="353.6" stroke="#2d936c" stroke-width="2"/>
+<line x1="926.3" y1="243.3" x2="940.3" y2="243.3" stroke="#2d936c" stroke-width="2"/>
+<line x1="926.3" y1="353.6" x2="940.3" y2="353.6" stroke="#2d936c" stroke-width="2"/>
+<line x1="1345.0" y1="201.6" x2="1345.0" y2="254.2" stroke="#2d936c" stroke-width="2"/>
+<line x1="1338.0" y1="201.6" x2="1352.0" y2="201.6" stroke="#2d936c" stroke-width="2"/>
+<line x1="1338.0" y1="254.2" x2="1352.0" y2="254.2" stroke="#2d936c" stroke-width="2"/>
+<polyline fill="none" stroke="#2d936c" stroke-width="4" stroke-linejoin="round" points="110.0,413.3 521.7,391.4 933.3,311.6 1345.0,216.3"/>
+<circle cx="110.0" cy="413.3" r="7" fill="#2d936c" stroke="#ffffff" stroke-width="2"/>
+<text x="110.0" y="400.3" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#2d936c" font-weight="650">2,174</text>
+<circle cx="521.7" cy="391.4" r="7" fill="#2d936c" stroke="#ffffff" stroke-width="2"/>
+<text x="521.7" y="378.4" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#2d936c" font-weight="650">2,836</text>
+<circle cx="933.3" cy="311.6" r="7" fill="#2d936c" stroke="#ffffff" stroke-width="2"/>
+<text x="933.3" y="298.6" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#2d936c" font-weight="650">5,254</text>
+<circle cx="1345.0" cy="216.3" r="7" fill="#2d936c" stroke="#ffffff" stroke-width="2"/>
+<text x="1345.0" y="203.3" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#2d936c" font-weight="650">8,142</text>
+<line x1="135.0" y1="110.0" x2="170.0" y2="110.0" stroke="#d95f59" stroke-width="4"/>
+<circle cx="152.5" cy="110" r="6" fill="#d95f59"/>
+<text x="180.0" y="116.0" font-family="Inter, Arial, sans-serif" font-size="15" text-anchor="start" fill="#263238" font-weight="600">Ray / GIL</text>
+<line x1="420.0" y1="110.0" x2="455.0" y2="110.0" stroke="#3973ac" stroke-width="4"/>
+<circle cx="437.5" cy="110" r="6" fill="#3973ac"/>
+<text x="465.0" y="116.0" font-family="Inter, Arial, sans-serif" font-size="15" text-anchor="start" fill="#263238" font-weight="600">nogil_rpc / GIL</text>
+<line x1="705.0" y1="110.0" x2="740.0" y2="110.0" stroke="#2d936c" stroke-width="4"/>
+<circle cx="722.5" cy="110" r="6" fill="#2d936c"/>
+<text x="750.0" y="116.0" font-family="Inter, Arial, sans-serif" font-size="15" text-anchor="start" fill="#263238" font-weight="600">nogil_rpc / no-GIL</text>
+<text x="110.0" y="555.0" font-family="Inter, Arial, sans-serif" font-size="21" text-anchor="start" fill="#263238" font-weight="650">Median throughput ratios</text>
+<line x1="110.0" y1="835.0" x2="1345.0" y2="835.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="840.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">0×</text>
+<line x1="110.0" y1="794.2" x2="1345.0" y2="794.2" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="799.2" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">1×</text>
+<line x1="110.0" y1="753.3" x2="1345.0" y2="753.3" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="758.3" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">2×</text>
+<line x1="110.0" y1="712.5" x2="1345.0" y2="712.5" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="717.5" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">3×</text>
+<line x1="110.0" y1="671.7" x2="1345.0" y2="671.7" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="676.7" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">4×</text>
+<line x1="110.0" y1="630.8" x2="1345.0" y2="630.8" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="635.8" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">5×</text>
+<line x1="110.0" y1="590.0" x2="1345.0" y2="590.0" stroke="#dfe5e9" stroke-width="1"/>
+<text x="96.0" y="595.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="end" fill="#263238" font-weight="400">6×</text>
+<line x1="110.0" y1="794.2" x2="1345.0" y2="794.2" stroke="#7b878d" stroke-width="2" stroke-dasharray="7 6"/>
+<polyline fill="none" stroke="#7868b4" stroke-width="4" stroke-linejoin="round" points="110.0,608.3 521.7,716.8 933.3,782.2 1345.0,794.7"/>
+<circle cx="110.0" cy="608.3" r="6" fill="#7868b4" stroke="#ffffff" stroke-width="2"/>
+<text x="110.0" y="596.3" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#7868b4" font-weight="650">5.55×</text>
+<circle cx="521.7" cy="716.8" r="6" fill="#7868b4" stroke="#ffffff" stroke-width="2"/>
+<text x="521.7" y="704.8" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#7868b4" font-weight="650">2.89×</text>
+<circle cx="933.3" cy="782.2" r="6" fill="#7868b4" stroke="#ffffff" stroke-width="2"/>
+<text x="933.3" y="770.2" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#7868b4" font-weight="650">1.29×</text>
+<circle cx="1345.0" cy="794.7" r="6" fill="#7868b4" stroke="#ffffff" stroke-width="2"/>
+<text x="1345.0" y="782.7" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#7868b4" font-weight="650">0.99×</text>
+<polyline fill="none" stroke="#e08b2c" stroke-width="4" stroke-linejoin="round" points="110.0,799.5 521.7,776.4 933.3,721.0 1345.0,655.9"/>
+<circle cx="110.0" cy="799.5" r="6" fill="#e08b2c" stroke="#ffffff" stroke-width="2"/>
+<text x="110.0" y="787.5" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#e08b2c" font-weight="650">0.87×</text>
+<circle cx="521.7" cy="776.4" r="6" fill="#e08b2c" stroke="#ffffff" stroke-width="2"/>
+<text x="521.7" y="764.4" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#e08b2c" font-weight="650">1.44×</text>
+<circle cx="933.3" cy="721.0" r="6" fill="#e08b2c" stroke="#ffffff" stroke-width="2"/>
+<text x="933.3" y="709.0" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#e08b2c" font-weight="650">2.79×</text>
+<circle cx="1345.0" cy="655.9" r="6" fill="#e08b2c" stroke="#ffffff" stroke-width="2"/>
+<text x="1345.0" y="643.9" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#e08b2c" font-weight="650">4.39×</text>
+<polyline fill="none" stroke="#2d936c" stroke-width="4" stroke-linejoin="round" points="110.0,638.2 521.7,665.3 933.3,687.6 1345.0,658.1"/>
+<circle cx="110.0" cy="638.2" r="6" fill="#2d936c" stroke="#ffffff" stroke-width="2"/>
+<text x="110.0" y="626.2" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#2d936c" font-weight="650">4.82×</text>
+<circle cx="521.7" cy="665.3" r="6" fill="#2d936c" stroke="#ffffff" stroke-width="2"/>
+<text x="521.7" y="653.3" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#2d936c" font-weight="650">4.16×</text>
+<circle cx="933.3" cy="687.6" r="6" fill="#2d936c" stroke="#ffffff" stroke-width="2"/>
+<text x="933.3" y="675.6" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#2d936c" font-weight="650">3.61×</text>
+<circle cx="1345.0" cy="658.1" r="6" fill="#2d936c" stroke="#ffffff" stroke-width="2"/>
+<text x="1345.0" y="646.1" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="middle" fill="#2d936c" font-weight="650">4.33×</text>
+<line x1="135.0" y1="538.0" x2="170.0" y2="538.0" stroke="#7868b4" stroke-width="4"/>
+<text x="180.0" y="544.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="start" fill="#263238" font-weight="600">RPC/GIL ÷ Ray/GIL</text>
+<line x1="490.0" y1="538.0" x2="525.0" y2="538.0" stroke="#e08b2c" stroke-width="4"/>
+<text x="535.0" y="544.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="start" fill="#263238" font-weight="600">RPC/no-GIL ÷ RPC/GIL</text>
+<line x1="845.0" y1="538.0" x2="880.0" y2="538.0" stroke="#2d936c" stroke-width="4"/>
+<text x="890.0" y="544.0" font-family="Inter, Arial, sans-serif" font-size="14" text-anchor="start" fill="#263238" font-weight="600">RPC/no-GIL ÷ Ray/GIL</text>
+<text x="110.0" y="866.0" font-family="Inter, Arial, sans-serif" font-size="16" text-anchor="middle" fill="#263238" font-weight="600">1</text>
+<text x="521.7" y="866.0" font-family="Inter, Arial, sans-serif" font-size="16" text-anchor="middle" fill="#263238" font-weight="600">2</text>
+<text x="933.3" y="866.0" font-family="Inter, Arial, sans-serif" font-size="16" text-anchor="middle" fill="#263238" font-weight="600">4</text>
+<text x="1345.0" y="866.0" font-family="Inter, Arial, sans-serif" font-size="16" text-anchor="middle" fill="#263238" font-weight="600">6</text>
+<text x="727.5" y="900.0" font-family="Inter, Arial, sans-serif" font-size="17" text-anchor="middle" fill="#263238" font-weight="600">concurrent coordinators</text>
+<text x="1345.0" y="925.0" font-family="Inter, Arial, sans-serif" font-size="13" text-anchor="end" fill="#6d787e" font-weight="400">Work grows with coordinator count: 200 rounds/coordinator, batch 8</text>
+</svg>

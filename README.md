@@ -1,8 +1,9 @@
 # nogil_rpc
 
-`nogil_rpc` is a small Python-to-Python RPC runtime for free-threaded Python
-experiments. It lets a server expose functions with `@remote` and another
-process call them through a Ray-like `.remote(...).get()` API.
+`nogil_rpc` is a small, project-agnostic Python-to-Python RPC runtime for
+free-threaded Python experiments. It lets a server expose functions and
+stateful actors with `@remote` and another process call them through a Ray-like
+`.remote(...).get()` API.
 
 ## Quick Start
 
@@ -239,3 +240,71 @@ Exact numbers depend on CPU count, system load, and workload size, so compare
 the two modes on the same machine with the same arguments. The report separately
 shows whether the interpreter supports free-threading and whether the GIL was
 enabled for that particular run.
+
+## Ray Control-Plane Comparison
+
+`benchmarks/control_plane_compare.py` compares Ray and `nogil_rpc` on a miniature
+version of the shared-domain control plane in the alpha-beta-CROWN neural
+network verifier. One persistent actor owns a priority frontier of compact
+domain records. Concurrent coordinators stand in for solver workers: they claim
+a batch, create deterministic child records locally, publish the children, and
+periodically query progress. The runtime itself remains independent of
+alpha-beta-CROWN and contains no verifier-specific code.
+
+The benchmark deliberately excludes Torch, CUDA, NumPy arrays, and solver work.
+It measures small control messages and actor coordination rather than Ray's
+shared-memory tensor data path. Runtime startup and actor creation are reported
+separately from steady-state control-call throughput.
+
+Run the default concurrency/throughput comparison at 1, 2, 4, and 6 concurrent
+coordinators. `--rounds` is per coordinator, so total control-plane work grows
+with the coordinator count:
+
+```bash
+.venv/bin/python benchmarks/control_plane_compare.py compare \
+  --coordinators 1 2 4 6 \
+  --rounds 200 \
+  --batch-size 8 \
+  --repetitions 10 \
+  --json > benchmarks/results/control_plane_3way.json
+```
+
+By default, the launcher runs three modes:
+
+```text
+Ray/GIL:          .python-3.14/bin/python3.14
+nogil_rpc/GIL:    .python-3.14/bin/python3.14
+nogil_rpc/no-GIL: .venv-ft/bin/python -X gil=0
+```
+
+Ray and the GIL-enabled `nogil_rpc` baseline deliberately share the exact same
+regular interpreter. This isolates framework overhead. Comparing the two
+`nogil_rpc` modes then isolates the effect of free-threading, while comparing
+`nogil_rpc/no-GIL` with `Ray/GIL` shows the combined effect. Override the paths
+with `--regular-python` and `--free-threaded-python`. Use `--json` for raw
+per-run and median results.
+
+Plot a JSON result as a dependency-free SVG, or install Matplotlib and use a
+`.png` output name for a raster copy:
+
+```bash
+.venv/bin/python benchmarks/plot_control_plane_results.py \
+  benchmarks/results/control_plane_3way.json \
+  benchmarks/results/control_plane_3way.svg
+```
+
+The checked-in 10-run result reached 8,142 control calls/second with six
+coordinators under free-threaded CPython, 4.33x the Ray/GIL median for this
+compact control-plane workload. This is not an end-to-end alpha-beta-CROWN
+speedup claim; the benchmark excludes solver computation and tensor transport.
+
+The comparison models the serialized shared domain-list actor and its
+claim/publish/query traffic. It does not reproduce Ray placement groups,
+multi-node scheduling, GPU isolation, object-store tensor transport, process
+failure isolation, or forceful actor termination. The detailed production-code
+investigation and fairness boundaries are in
+`ray_control_plane_analysis.md`.
+
+The proposed packaging boundary and integration milestones for using the
+generic runtime from alpha-beta-CROWN are documented in
+`alpha_beta_crown_integration.md`.
