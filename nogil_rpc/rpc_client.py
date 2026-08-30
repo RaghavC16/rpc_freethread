@@ -19,19 +19,25 @@ def connect(
     *,
     serializer: Serializer | None = None,
     timeout: float | None = None,
+    max_frame_size: int = 64 * 1024 * 1024,
 ) -> RemoteProcess:
     """Connect to an RPC runtime and return a dynamic process proxy."""
+    if type(max_frame_size) is not int or max_frame_size <= 0:
+        raise ValueError("max_frame_size must be a positive integer")
     host, port = _parse_address(address)
     sock = socket.create_connection((host, port), timeout=timeout)
     serializer_impl = serializer if serializer is not None else PickleSerializer()
     try:
-        catalog = serializer_impl.loads(read_frame(sock))
+        catalog = serializer_impl.loads(
+            read_frame(sock, max_frame_size=max_frame_size)
+        )
         actor_names = _parse_catalog(catalog)
         sock.settimeout(None)
         connection = RpcClientConnection(
             sock,
             serializer=serializer_impl,
             default_timeout=timeout,
+            max_frame_size=max_frame_size,
         )
     except Exception:
         sock.close()
@@ -49,7 +55,10 @@ class RpcClientConnection:
         serializer: Serializer | None = None,
         start_response_reader: bool = True,
         default_timeout: float | None = None,
+        max_frame_size: int = 64 * 1024 * 1024,
     ) -> None:
+        if type(max_frame_size) is not int or max_frame_size <= 0:
+            raise ValueError("max_frame_size must be a positive integer")
         self._sock = sock
         self._serializer = (
             serializer if serializer is not None else PickleSerializer()
@@ -60,6 +69,7 @@ class RpcClientConnection:
         self._closed = False
         self._lifecycle_lock = Lock()
         self._default_timeout = default_timeout
+        self._max_frame_size = max_frame_size
 
         self._reader_thread: Thread | None = None
         if start_response_reader:
@@ -141,7 +151,12 @@ class RpcClientConnection:
                     raise ConnectionClosedError("client connection is closed")
                 with self._pending_lock:
                     self._pending[call_id] = ref
-                write_frame(self._sock, payload, write_lock=self._write_lock)
+                write_frame(
+                    self._sock,
+                    payload,
+                    write_lock=self._write_lock,
+                    max_frame_size=self._max_frame_size,
+                )
         except Exception:
             with self._pending_lock:
                 self._pending.pop(call_id, None)
@@ -158,7 +173,9 @@ class RpcClientConnection:
     def _read_responses(self) -> None:
         try:
             while True:
-                payload = read_frame(self._sock)
+                payload = read_frame(
+                    self._sock, max_frame_size=self._max_frame_size
+                )
                 message = self._serializer.loads(payload)
                 self._handle_response(message)
         except Exception as exc:

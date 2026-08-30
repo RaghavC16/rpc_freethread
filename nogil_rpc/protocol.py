@@ -29,7 +29,8 @@ def write_frame(
     header = struct.pack(">I", len(payload))
     context = write_lock if write_lock is not None else nullcontext()
     with context:
-        sock.sendall(header + payload)
+        sock.sendall(header)
+        sock.sendall(payload)
 
 
 def read_frame(

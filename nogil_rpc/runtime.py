@@ -54,12 +54,16 @@ class RpcRuntime:
         max_workers: int = 32,
         serializer: Serializer | None = None,
         backlog: int = 128,
+        max_frame_size: int = 64 * 1024 * 1024,
     ) -> None:
+        if type(max_frame_size) is not int or max_frame_size <= 0:
+            raise ValueError("max_frame_size must be a positive integer")
         self.host = host
         self.port = port
         self._max_workers = max_workers
         self._serializer = serializer if serializer is not None else PickleSerializer()
         self._backlog = backlog
+        self._max_frame_size = max_frame_size
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
         self._server_sock: socket.socket | None = None
         self._accept_thread: Thread | None = None
@@ -181,7 +185,9 @@ class RpcRuntime:
         try:
             self._send_catalog(connection)
             while not self._stop_event.is_set():
-                payload = read_frame(connection.sock)
+                payload = read_frame(
+                    connection.sock, max_frame_size=self._max_frame_size
+                )
                 message = self._serializer.loads(payload)
                 self._handle_message(connection, message)
         except Exception:
@@ -205,7 +211,12 @@ class RpcRuntime:
         payload = self._serializer.dumps(
             {"type": "catalog", "functions": functions, "actors": actors}
         )
-        write_frame(connection.sock, payload, write_lock=connection.write_lock)
+        write_frame(
+            connection.sock,
+            payload,
+            write_lock=connection.write_lock,
+            max_frame_size=self._max_frame_size,
+        )
 
     def _handle_message(
         self,
@@ -500,7 +511,12 @@ class RpcRuntime:
                 raise
 
         try:
-            write_frame(connection.sock, payload, write_lock=connection.write_lock)
+            write_frame(
+                connection.sock,
+                payload,
+                write_lock=connection.write_lock,
+                max_frame_size=self._max_frame_size,
+            )
         except Exception:
             self._abort_connection(connection)
             raise

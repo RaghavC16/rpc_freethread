@@ -182,6 +182,18 @@ class CoreTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             runtime.start()
 
+    def test_frame_limit_is_configurable_and_validated(self) -> None:
+        runtime = RpcRuntime(max_frame_size=1024)
+        self.assertEqual(runtime._max_frame_size, 1024)
+        runtime.stop()
+
+        for invalid in (0, -1, 1.5, True):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    RpcRuntime(max_frame_size=invalid)
+                with self.assertRaises(ValueError):
+                    connect("127.0.0.1:1", max_frame_size=invalid)
+
     def test_serializer_round_trips_python_objects(self) -> None:
         serializer = PickleSerializer()
         value = {"numbers": [1, 2, 3], "nested": {"ok": True}}

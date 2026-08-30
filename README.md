@@ -49,6 +49,11 @@ with connect("127.0.0.1:50051") as worker:
     print(ref.get())
 ```
 
+`RpcRuntime(..., max_frame_size=...)` and `connect(..., max_frame_size=...)`
+may use a matching larger positive limit for trusted, one-time bootstrap
+objects. The default remains 64 MiB; iterative tensor payloads should use a
+dedicated data plane rather than increasing this limit indiscriminately.
+
 Expected output:
 
 ```text
