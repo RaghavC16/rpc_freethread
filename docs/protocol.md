@@ -20,9 +20,10 @@ Immediately after accepting a connection, the server sends a `catalog` message:
 ## Requests and responses
 
 Function calls use a `call` request. Actor lifecycle and method calls use
-`create_actor`, `call_actor`, and `destroy_actor`. Every request carries a
-client-generated `call_id`; result messages echo that identifier and contain
-either `{"ok": True, "result": ...}` or error metadata with `"ok": False`.
+`create_actor`, `attach_actor`, `call_actor`, and `destroy_actor`. Every request
+carries a client-generated `call_id`; result messages echo that identifier and
+contain either `{"ok": True, "result": ...}` or error metadata with
+`"ok": False`.
 
 The client may have multiple requests in flight on one connection. Server
 functions execute in a shared thread pool. Each actor has a single-thread
@@ -36,7 +37,9 @@ a connection is lost after a request is sent, the caller cannot tell whether
 the operation executed. Applications must make retried operations idempotent
 or supply their own request identifiers when they need stronger semantics.
 Actors belong to the connection that created them and are removed when that
-connection closes.
+connection closes. Other connections may use `attach_actor` with an opaque
+actor ID to obtain a non-owning handle to the same actor. An attached handle
+may invoke methods but may not destroy the actor.
 
 ## Serialization and security
 

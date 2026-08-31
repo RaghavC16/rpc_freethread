@@ -159,6 +159,19 @@ generator callables, and serialization failures follow the same error path.
 Private actor attributes are not exposed. Closing a client connection releases
 the actors it created, and both actor and runtime shutdown are idempotent.
 
+An actor can be shared with another client by publishing its opaque
+`actor_id` and attaching a non-owning handle:
+
+```python
+owner = driver.SharedQueue.remote()
+worker_queue = worker.attach_actor(owner.actor_id)
+```
+
+Calls through both handles reach the same actor and remain sequential. Closing
+the attached handle does not destroy the actor. Only the creating connection
+owns its lifetime and may destroy it; disconnecting that owner releases the
+actor.
+
 ## Free-Threading Safety
 
 The runtime is written as if the GIL does not protect shared state:

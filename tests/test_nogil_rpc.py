@@ -172,7 +172,7 @@ class CoreTests(unittest.TestCase):
                     _parse_catalog(catalog)
 
     def test_public_version_metadata(self) -> None:
-        self.assertEqual(__version__, "0.1.0")
+        self.assertEqual(__version__, "0.2.0")
 
     def test_runtime_stop_is_idempotent_and_prevents_restart(self) -> None:
         runtime = RpcRuntime()
@@ -460,6 +460,81 @@ class IntegrationTests(unittest.TestCase):
 
         self.assertEqual(first.increment.remote().get(timeout=2), 1)
         self.assertEqual(second.increment.remote().get(timeout=2), 101)
+
+    def test_actor_can_be_shared_through_non_owning_attached_handle(self) -> None:
+        @remote
+        class SharedCounter:
+            def __init__(self):
+                self.value = 0
+
+            def increment(self):
+                self.value += 1
+                return self.value
+
+        runtime = self.start_runtime()
+        owner_process = self.connect_worker(runtime)
+        attached_process = self.connect_worker(runtime)
+        owner = owner_process.SharedCounter.remote()
+        attached = attached_process.attach_actor(owner.actor_id)
+        self.addCleanup(owner.close)
+
+        self.assertTrue(owner.owns_actor)
+        self.assertFalse(attached.owns_actor)
+        self.assertEqual(owner.increment.remote().get(timeout=2), 1)
+        self.assertEqual(attached.increment.remote().get(timeout=2), 2)
+
+        attached.close()
+        self.assertEqual(owner.increment.remote().get(timeout=2), 3)
+
+    def test_attaching_missing_actor_fails(self) -> None:
+        runtime = self.start_runtime()
+        worker = self.connect_worker(runtime)
+
+        with self.assertRaises(RemoteError) as raised:
+            worker.attach_actor("missing-actor")
+        self.assertEqual(raised.exception.error_type, "ActorNotFoundError")
+
+    def test_non_owner_connection_cannot_destroy_shared_actor(self) -> None:
+        @remote
+        class ProtectedActor:
+            def ping(self):
+                return "pong"
+
+        runtime = self.start_runtime()
+        owner_process = self.connect_worker(runtime)
+        attached_process = self.connect_worker(runtime)
+        owner = owner_process.ProtectedActor.remote()
+        attached = attached_process.attach_actor(owner.actor_id)
+        self.addCleanup(owner.close)
+
+        with self.assertRaises(RemoteError) as raised:
+            attached_process._connection.destroy_actor(owner.actor_id)
+        self.assertEqual(raised.exception.error_type, "ActorOwnershipError")
+        self.assertEqual(attached.ping.remote().get(timeout=2), "pong")
+
+    def test_owner_disconnect_releases_actor_for_attached_handles(self) -> None:
+        @remote
+        class OwnerScopedActor:
+            def ping(self):
+                return "pong"
+
+        runtime = self.start_runtime()
+        owner_process = self.connect_worker(runtime)
+        attached_process = self.connect_worker(runtime)
+        owner = owner_process.OwnerScopedActor.remote()
+        attached = attached_process.attach_actor(owner.actor_id)
+
+        owner_process.close()
+        deadline = monotonic() + 2
+        while monotonic() < deadline:
+            with runtime._actors_lock:
+                if owner.actor_id not in runtime._actors:
+                    break
+            sleep(0.01)
+
+        with self.assertRaises(RemoteError) as raised:
+            attached.ping.remote().get(timeout=2)
+        self.assertEqual(raised.exception.error_type, "ActorNotFoundError")
 
     def test_separate_remote_actors_execute_concurrently(self) -> None:
         rendezvous = Barrier(2)

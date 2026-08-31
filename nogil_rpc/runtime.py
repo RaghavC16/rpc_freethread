@@ -10,7 +10,12 @@ from dataclasses import dataclass, field
 from threading import Event, Lock, Thread
 from typing import Any, TypeVar
 
-from nogil_rpc.errors import ActorNotFoundError, ConnectionClosedError, ProtocolError
+from nogil_rpc.errors import (
+    ActorNotFoundError,
+    ActorOwnershipError,
+    ConnectionClosedError,
+    ProtocolError,
+)
 from nogil_rpc.protocol import read_frame, write_frame
 from nogil_rpc.registry import REMOTE_REGISTRY
 from nogil_rpc.serializer import PickleSerializer, Serializer
@@ -233,6 +238,9 @@ class RpcRuntime:
         if message_type == "create_actor":
             self._handle_actor_create(connection, message)
             return
+        if message_type == "attach_actor":
+            self._handle_actor_attach(connection, message)
+            return
         if message_type == "call_actor":
             self._handle_actor_call(connection, message)
             return
@@ -308,6 +316,20 @@ class RpcRuntime:
             connection,
             call_id,
             ActorNotFoundError(f"actor {actor_id!r} does not exist"),
+        )
+
+    def _handle_actor_attach(
+        self,
+        connection: _RuntimeConnection,
+        message: dict[str, Any],
+    ) -> None:
+        call_id = self._require_string(message, "call_id")
+        actor_id = self._require_string(message, "actor_id")
+        self._executor.submit(
+            self._attach_actor,
+            connection,
+            call_id,
+            actor_id,
         )
 
     def _handle_actor_destroy(
@@ -410,19 +432,50 @@ class RpcRuntime:
         else:
             self._send_result(connection, call_id, result)
 
-    def _destroy_actor(
+    def _attach_actor(
         self,
         connection: _RuntimeConnection,
         call_id: str,
         actor_id: str,
     ) -> None:
         with self._actors_lock:
-            actor = self._actors.pop(actor_id, None)
+            exists = actor_id in self._actors
+        if not exists:
+            self._send_error(
+                connection,
+                call_id,
+                ActorNotFoundError(f"actor {actor_id!r} does not exist"),
+            )
+            return
+        self._send_result(connection, call_id, None)
+
+    def _destroy_actor(
+        self,
+        connection: _RuntimeConnection,
+        call_id: str,
+        actor_id: str,
+    ) -> None:
+        ownership_error = False
+        with self._actors_lock:
+            actor = self._actors.get(actor_id)
+            if actor is not None and actor.owner is not connection:
+                ownership_error = True
+            elif actor is not None:
+                self._actors.pop(actor_id)
         if actor is None:
             self._send_error(
                 connection,
                 call_id,
                 ActorNotFoundError(f"actor {actor_id!r} does not exist"),
+            )
+            return
+        if ownership_error:
+            self._send_error(
+                connection,
+                call_id,
+                ActorOwnershipError(
+                    f"connection does not own actor {actor_id!r}"
+                ),
             )
             return
         actor.executor.shutdown(wait=True, cancel_futures=False)

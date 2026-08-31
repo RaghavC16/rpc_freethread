@@ -3,6 +3,7 @@
 from nogil_rpc._version import __version__
 from nogil_rpc.errors import (
     ActorNotFoundError,
+    ActorOwnershipError,
     ConnectionClosedError,
     DuplicateFunctionError,
     FunctionNotFoundError,
@@ -22,6 +23,7 @@ from nogil_rpc.serializer import PickleSerializer, Serializer
 __all__ = [
     "ActorHandle",
     "ActorNotFoundError",
+    "ActorOwnershipError",
     "ConnectionClosedError",
     "DuplicateFunctionError",
     "FunctionNotFoundError",

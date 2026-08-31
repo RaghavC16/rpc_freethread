@@ -114,7 +114,15 @@ class RpcClientConnection:
             }
         )
         ref.get(timeout=self._default_timeout)
-        return ActorHandle(self, actor_id)
+        return ActorHandle(self, actor_id, owns_actor=True)
+
+    def attach_actor(self, actor_id: str) -> ActorHandle:
+        """Attach a non-owning handle to an actor created by another client."""
+        if not isinstance(actor_id, str) or not actor_id:
+            raise ValueError("actor_id must be a non-empty string")
+        ref = self._send_request({"type": "attach_actor", "actor_id": actor_id})
+        ref.get(timeout=self._default_timeout)
+        return ActorHandle(self, actor_id, owns_actor=False)
 
     def call_actor(
         self,
@@ -253,6 +261,10 @@ class RemoteProcess:
         """Close the underlying connection and fail any pending calls."""
         self._connection.close()
 
+    def attach_actor(self, actor_id: str) -> ActorHandle:
+        """Return a non-owning handle to an existing actor in this runtime."""
+        return self._connection.attach_actor(actor_id)
+
     def __enter__(self) -> RemoteProcess:
         return self
 
@@ -285,15 +297,27 @@ class RemoteActorClassProxy:
 class ActorHandle:
     """Reference to one persistent object owned by an RPC runtime."""
 
-    def __init__(self, connection: RpcClientConnection, actor_id: str) -> None:
+    def __init__(
+        self,
+        connection: RpcClientConnection,
+        actor_id: str,
+        *,
+        owns_actor: bool = True,
+    ) -> None:
         self._connection = connection
         self._actor_id = actor_id
+        self._owns_actor = owns_actor
         self._closed = False
         self._lifecycle_lock = Lock()
 
     @property
     def actor_id(self) -> str:
         return self._actor_id
+
+    @property
+    def owns_actor(self) -> bool:
+        """Whether closing this handle destroys the server-side actor."""
+        return self._owns_actor
 
     def __getattr__(self, method_name: str) -> ActorMethodProxy:
         if method_name.startswith("_"):
@@ -305,6 +329,8 @@ class ActorHandle:
             if self._closed:
                 return
             self._closed = True
+        if not self._owns_actor:
+            return
         try:
             self._connection.destroy_actor(self._actor_id)
         except ConnectionClosedError:

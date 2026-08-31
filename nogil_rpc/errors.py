@@ -41,6 +41,10 @@ class ActorNotFoundError(RpcError):
     """Raised when a requested actor instance does not exist."""
 
 
+class ActorOwnershipError(RpcError):
+    """Raised when a non-owning connection tries to destroy an actor."""
+
+
 class RemoteError(RpcError):
     """Raised by clients when a remote function fails."""
 
